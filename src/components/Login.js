@@ -1,30 +1,33 @@
-import { useRef, useState, useEffect } from 'react';
-import useAuth from '../hooks/useAuth';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useRef, useState, useEffect } from "react";
+import useAuth from "../hooks/useAuth";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import useInput from "../hooks/useInput";
+import useToggle from "../hooks/useToggle";
 
-import axios from '../api/axios';
-const LOGIN_URL = '/auth';
+import axios from "../api/axios";
+const LOGIN_URL = "/auth";
 
 const Login = () => {
-    const { setAuth, persist, setPersist } = useAuth();
+    const { setAuth } = useAuth();
 
     const navigate = useNavigate();
     const location = useLocation();
-    const from = location.state?.from?.pathname || '/';
+    const from = location.state?.from?.pathname || "/";
 
     const userRef = useRef();
     const errRef = useRef();
 
-    const [user, setUser] = useState('');
-    const [pwd, setPwd] = useState('');
-    const [errMsg, setErrMsg] = useState('');
+    const [user, resetUser, userAttrs] = useInput("user", ""); //useState('');
+    const [pwd, setPwd] = useState("");
+    const [errMsg, setErrMsg] = useState("");
+    const [check, toggleCheck] = useToggle("persist", false);
 
     useEffect(() => {
         userRef.current.focus();
     }, []);
 
     useEffect(() => {
-        setErrMsg('');
+        setErrMsg("");
     }, [user, pwd]);
 
     const handleSubmit = async (e) => {
@@ -32,7 +35,7 @@ const Login = () => {
 
         try {
             const response = await axios.post(LOGIN_URL, JSON.stringify({ user, pwd }), {
-                headers: { 'Content-Type': 'application/json' },
+                headers: { "Content-Type": "application/json" },
                 withCredentials: true,
             });
             console.log(JSON.stringify(response?.data));
@@ -40,34 +43,35 @@ const Login = () => {
             const accessToken = response?.data?.accessToken;
             const roles = response?.data?.roles;
             setAuth({ user, pwd, roles, accessToken });
-            setUser('');
-            setPwd('');
+            // setUser("");
+            resetUser();
+            setPwd("");
             navigate(from, { replace: true });
         } catch (err) {
             if (!err?.response) {
-                setErrMsg('No Server Response');
+                setErrMsg("No Server Response");
             } else if (err.response?.status === 400) {
-                setErrMsg('Missing Username or Password');
+                setErrMsg("Missing Username or Password");
             } else if (err.response?.status === 401) {
-                setErrMsg('Unauthorized');
+                setErrMsg("Unauthorized");
             } else {
-                setErrMsg('Login Failed');
+                setErrMsg("Login Failed");
             }
             errRef.current.focus();
         }
     };
 
-    const togglePersist = () => {
-        setPersist((prev) => !prev);
-    };
+    // const togglePersist = () => {
+    //     setPersist((prev) => !prev);
+    // };
 
-    useEffect(() => {
-        localStorage.setItem('persist', persist);
-    }, [persist]);
+    // useEffect(() => {
+    //     localStorage.setItem("persist", persist);
+    // }, [persist]);
 
     return (
         <section>
-            <p ref={errRef} className={errMsg ? 'errmsg' : 'offscreen'} aria-live="assertive">
+            <p ref={errRef} className={errMsg ? "errmsg" : "offscreen"} aria-live="assertive">
                 {errMsg}
             </p>
             <h1>Sign In</h1>
@@ -78,8 +82,7 @@ const Login = () => {
                     id="username"
                     ref={userRef}
                     autoComplete="off"
-                    onChange={(e) => setUser(e.target.value)}
-                    value={user}
+                    {...userAttrs}
                     required
                 />
 
@@ -93,12 +96,7 @@ const Login = () => {
                 />
                 <button>Sign In</button>
                 <div className="persistCheck">
-                    <input
-                        type="checkbox"
-                        id="persist"
-                        onChange={togglePersist}
-                        checked={persist}
-                    />
+                    <input type="checkbox" id="persist" onChange={toggleCheck} checked={check} />
                     <label htmlFor="persist">Trust This Device</label>
                 </div>
             </form>
